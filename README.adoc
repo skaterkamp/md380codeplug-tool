@@ -65,15 +65,15 @@ Use Netbeans or your favorite Java IDE.
 
 Team -> Git -> Clone Remote Repository
 
-Select and right click _Codeplug Stuff Project_, execute _Build_.
+Select and right click _CPS MD380 Codeplug Tool Project_, execute _Build_.
 
-Expand _Modules_ in _Codeplug Stuff Project_. Open Sub-Project _CPS_CLI_.
+Expand _Modules_ in _CPS MD380 Codeplug Tool Project_. Open Sub-Project _CPS_CLI_.
 
 In _CPS CLI_, expand _Test Packages_ -> _de.katerkamp.cps_.
 
 Select CPConverter and right click _Test File_. This will take
-a sample rdt file which comes with the project and print it
-to the Output Tab first in XML format and then in JSON format.
+a sample rdt file which comes with the project and convert
+it to XML.
 
 You will see that there are quite a few fields missing.
 Please fork this project, add the missing fields and submit the changes
