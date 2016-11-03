@@ -1,0 +1,58 @@
+<!--
+
+    Copyright (c) 2009-2016 Wilfred Springer
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+-->
+<article>
+  <title>Limbo</title>
+  <programlisting><![CDATA[
+class Person {
+  private boolean qualified;
+  private int age;
+  private Certification[] certifications;
+}
+
+class Certification {
+  private String name;
+}
+
+Expression<Boolean,Person> qualified = 
+  Expressions.createBoolean(new EarlyBinding(Person.class), "qualified");
+Expression<Integer,Person> age = 
+  Expressions.createInteger(new EarlyBinding(Person.class), "age");
+age = Expressions.createInteger(new LateBinding(Person.class), "age");
+Expressions.from(Person.class).to(Integer.class);
+Expressions.from(Person.class).toInteger().create("age * 2");
+Expressions.from(Person.class).toBoolean().create("qualified");
+Expressions.from(Person.class).toBoolean().using(LateBinding).create();
+Expressions.from(Person.class).toInteger().using(EarlyBinding).create();
+Expressions.fromBinding(new Binding(...)).toBoolean();
+Expression<Boolean,Person> expr;
+expr.toString(); // age * (2 + 2)
+expr.toReadableString(); // age times the sum of 2 and 2
+expr.simplify().toString(); // age * 4
+expr.simplify(); // age times 4
+]]>
+  </programlisting>
+</article>

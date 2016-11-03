@@ -1,0 +1,108 @@
+= Codeplug Handler for DMR Radios like Tytera MD-380
+V0.1-SNAPSHOT, Stefan Katerkamp DB3EF <info@katerkamp.de>
+
+// Convert Tytera MD380 .rdt to/from Java Object Tree to/from XML,Json,....
+
+MD380 Codeplug Tool is a platform independant Java program to convert binary DMR codeplug
+files (Tytera MD380) to/from JSON or XML.
+
+Note:: This is work in progress. 
+Maven project structure already works but data produced is not usable yet,
+as there are still elements missing and incomplete.
+I decided to share this project on Github despite its early stage, just in case someone is 
+interested and wants to help.  Fork this project, add whats still
+needed and send a pull request.
+
+== How it works
+
+Central part of this project is a Java Bean tree which represents 
+the codeplug instance.
+_Codeplug.java_ acts as the root element of this object tree.
+It resides in Maven artifact _cps-commons_.
+The layout for that tree is based on the excellent work of IZ2UUF, who
+has analyzed the MD-380 binary codeplug RDT format and 
+documented its structure.
+
+Maven artifact _cps-tytera_ provides the interface 
+between the binary MD-380 _.rdt_ file and the codeplug object tree.
+It uses Preon for the low level binary file handling.
+As Preon is currently not available in a Maven repository, a stripped down
+version has been included in this project.
+
+JAXB (MOXy) is used for marshalling/unmarshalling the codeplug objectree to/from
+XML or JSON. Interfaces to CSV or a GUI could be added easily.
+
+Artifact _cps-build_ is used for wrapping all that code up into a Debian package,
+for installation.
+
+== Quick start
+
+There is no pre assembled installation package yet. You need to start by compiling
+the project. Install Maven and Git, then:
+
+----
+git clone https://github.com/skaterkamp/md380codeplug-tool.git
+cd md380codeplug-tool
+mvn install
+----
+
+If this was successful, then
+use md380-dfu to get an RDT file from your MD-380, or download it from
+somewhere else. Move it to /tmp/cp.rdt. To convert this file to xml:
+
+----
+cd cps-cli
+mvn exec:java -Dexec.mainClass="de.katerkamp.cps.CPConverter" \
+ -Dexec.args="/tmp/cp.rdt /tmp/cp.xml"
+----
+
+Result is in /tmp/cp.xml then. This file provides a good overview
+which fields are still missing or contain wrong data.
+
+== Development
+
+Use Netbeans or your favorite Java IDE.
+
+Team -> Git -> Clone Remote Repository
+
+Select and right click _Codeplug Stuff Project_, execute _Build_.
+
+Expand _Modules_ in _Codeplug Stuff Project_. Open Sub-Project _CPS_CLI_.
+
+In _CPS CLI_, expand _Test Packages_ -> _de.katerkamp.cps_.
+
+Select CPConverter and right click _Test File_. This will take
+a sample rdt file which comes with the project and print it
+to the Output Tab first in XML format and then in JSON format.
+
+You will see that there are quite a few fields missing.
+Please fork this project, add the missing fields and submit the changes
+back by pull request. Thank you!
+
+== TODO
+
+* Complete set of elements in Bean Tree.
+
+* Clean up file tree in deb package.
+
+* Test against MD-380
+
+* Tune logging
+
+* Export/Import to CSV files.
+
+* Make GUI (JavaFX)
+
+* Implement other binary Codeplug formats
+
+
+== See also
+
+* http://www.iz2uuf.net/[rdt2csv by IZ2UUF]
+* https://github.com/preon/preon[Preon]
+* https://github.com/travisgoodspeed/md380tools[md380tools]
+* http://netbeans.org[Netbeans]
+
+Vy73,
+DB3EF
+

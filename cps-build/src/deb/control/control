@@ -1,0 +1,9 @@
+Package: dmr-md380codeplug-tool
+Version: [[version]]
+Section: hamradio
+Priority: low
+Architecture: all
+Description: Codeplug Stuff is a set of tools to read/create Codeplugs for DMR Radios.
+  It allows to convert binary files (right now only Tytera .rdt) to/from Json.
+Maintainer: Stefan Katerkamp <stefan@katerkamp.de>
+Depends: openjdk-8-jdk

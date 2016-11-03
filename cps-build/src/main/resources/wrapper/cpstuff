@@ -1,0 +1,168 @@
+#!/bin/bash -u
+# cpstuff -- Codeplug Stuff CLI Launcher
+# Author Stefan Katerkamp, Düsseldorf (c) 2016
+
+usage() {
+	[ $# -gt 0 ] && >&2 echo -e "Error: $*\n"
+	>&2 cat <<EOR
+Usage:
+ $(basename $0) [-v|-V|-d|-D] [opts] [args]
+
+Help Opts:
+ --conf list configuration properties
+ --help rints usage info
+ --vers prints version information
+
+Log Level: -v CONFIG, -V FINE, -d FINER, -D FINEST
+
+Opts:
+
+Other opts:
+ --vmargs <vmargs> Optional args for JVM
+ --props <properties_file> Alternative properties file
+
+EOR
+	exit 100 
+}
+
+export POSIXLY_CORRECT=true # allow for POSIX cli opts in Java WorkPhases
+longopts="vmargs:,props:,bg,help,kill::,log::,logf::,conf,work,vers"
+shortopts="vVdDp:b:t:"
+options=$(getopt --options "$shortopts" --long "$longopts" -n "$(basename $0)" -- "$@") || usage
+eval set -- "$options"
+[ -n "${CPS_HOME+1}" ] || export CPS_HOME=${fhs.prefix} # Maven resource fhs.prefix
+clilogdir=${fhs.log.prefix}/migt
+
+vmargs=""
+loglevel="INFO"
+logargc=0
+iaargc=0 # interactive arguments counter
+propsuri="-Dcps.config_uri=file://${CPS_HOME}/etc/cps.properties"
+logpropsfile=""
+cliprops=""
+runaction=""
+procid=""
+
+while true; do
+	case "$1" in
+
+	-v) loglevel="CONFIG"; ((logargc++)); shift;;
+	-V) loglevel="FINE"; ((logargc++)); shift;;
+	-d) loglevel="FINER"; ((logargc++)); shift;;
+	-D) loglevel="FINEST"; ((logargc++)); shift;;
+
+	--help) runaction="listhelp"; ((iaargc++)); shift;;
+	--conf) runaction="listconf"; ((iaargc++)); shift;;
+	--vers) runaction="listversion"; ((iaargc++)); shift;;
+
+	--props) propsuri="-Dcps.config_uri=file://$(readlink -f $2)"; shift 2;;
+	--vmargs) vmargs="$2"; shift 2;;
+
+	--) shift; break ;;
+	*) >&2 echo "$0 launcher error: Option $1 not implemented."; exit 99;;
+	esac
+done
+
+[ -n "${1+1}" ] && [[ $1 = "--" ]] && shift
+[ $logargc -gt 1 ] && usage "Only one loglevel arg allowed."
+[ $bgargc -gt 1 ] && usage "Only one longrun task arg allowed."
+[ -z "$runaction" ] && [ $# == 0 ] && usage
+if [ $# -gt 0 ]; then
+	workstep="$1"; shift
+fi
+cliargs="$@"
+
+## allow for --help cli arg to reside after workstep definition
+for a in $cliargs; do
+	case "$a" in
+	--help|-?)
+		runaction="listhelp"; ((iaargc++));
+		;;
+	esac
+done
+[ $bgargc -gt 0 ] && [ $iaargc -gt 0 ] && usage "Cannot run in background."
+
+if [ ! -r $CPS_HOME/etc/logging-$loglevel.properties ]; then
+	>&2 echo "Launcher error: File $CPS_HOME/etc/logging-$loglevel.properties missing."
+	exit 1
+fi
+logpropsfile="-Djava.util.logging.config.file=$CPS_HOME/etc/logging-$loglevel.properties"
+
+jvmopts="-d64 -Xms600m -Xmx1500m"
+jars=$(echo $CPS_HOME/lib/jars/* | tr ' ' ':')
+
+javacmd="java $jvmopts $vmargs $propsuri $cliprops $logpropsfile -cp $jars"
+javacmdsimple="java $vmargs $propsuri $cliprops -cp $jars"
+
+
+canonicalname=""
+
+if [ ! -z "$workstep" ]; then																	   
+	if [[  ${workstep#*.} =~ ^[A-Z].* ]]; then																	   
+		# last part of Classname starts with uppercase
+		canonicalname=de.katerkamp.cps.$workstep
+		$javacmdsimple de.katerkamp.cps.util.WfClassCheck $canonicalname
+		if [ $? -eq 100 ]; then
+	   		>&2 echo "Error: Workstep \"${canonicalname}\" unknown. Use --work to see available ones."
+	   		exit 3
+		fi
+	else
+		# lowercase, so its a tag for that class
+				workstep=${workstep//-/_} # bash cant handle dashes in vars
+		eval $($javacmdsimple de.katerkamp.cps.util.WorkStepTags 2>/dev/null)
+		if ! set | grep -q WORKSTEP_$workstep; then
+			>&2 echo "Unknown workstep tag $workstep"
+			exit 2
+		fi
+		eval canonicalname=de.katerkamp.cps.\$WORKSTEP_$workstep
+	fi 
+fi 
+
+case "$runaction" in
+
+
+"listwork")
+	$javacmd de.katerkamp.cps.util.WfPackages
+	exit $?
+	;;
+
+"listconf")
+	$javacmd de.katerkamp.cps.util.ShowConfig
+	exit $?
+	;;
+
+"listversion")
+	pkgs=$(dpkg -S $CPS_HOME)
+	pkgs=${pkgs%%:*}
+	pkgs=${pkgs//,}
+	for pkg in $pkgs; do
+ 		p=$(dpkg -s $pkg | grep 'Package:')
+		p=${p##*: }
+		v=$(dpkg -s $pkg | grep 'Version:')
+		v=${v##*: }
+		m=$(LANG=C stat /var/lib/dpkg/info/$pkg.list |grep Modify:)
+		m=${m##*: }
+		m=${m%:*}
+		echo Deb-Pkg: $v installed $m $p
+	done
+	echo "Jars (Git Version, Jar Version, Name):"
+	$javacmd de.katerkamp.cps.util.BuildVersions
+	;;
+
+"listhelp")
+	if [ -z "$canonicalname" ]; then
+		usage
+	fi
+	$javacmd de.katerkamp.cps.util.ShowUsage $canonicalname
+	exit $?
+	;;
+
+*)
+	exec $javacmd $canonicalname $cliargs
+	# notreached
+	;;
+esac
+
+exit 0
+
+# :se ts=4

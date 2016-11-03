@@ -1,0 +1,108 @@
+<!--
+
+    Copyright (c) 2009-2016 Wilfred Springer
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+-->
+<article>
+  <articleinfo>
+    <title>Roll Your Own Extension</title>
+  </articleinfo>
+  <para>
+    The previous chapter introduced the major interfaces defined by
+    Preon. If you want to extend the framework, you just implement
+    one of these interfaces. Just the quickly recap the previous
+    chapter, sorted by the relative relevance. The CodecFactory is
+    considered to be the most relevant interface, the BindingFactory
+    is considered to be the least relevant.
+  </para>
+  <variablelist>
+
+    <varlistentry>
+      <term>CodecFactory</term>
+      <listitem>
+        <para>
+          Implement this interface if you need to roll your own
+          specific type of encoding. Typically used when you want to
+          add support for another datatype, or another compression
+          scheme.
+        </para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term>CodecDecorator</term>
+      <listitem>
+        <para>
+          Implement this interface if you want to decorate the
+          behaviour of a Codec that has already been constructed.
+        </para>
+      </listitem>
+    </varlistentry>
+
+    <varlistentry>
+      <term>BindingFactory</term>
+      <listitem>
+        <para>
+          Implement these interfaces if you want to change the way
+          object fields and codecs are associated, to change the way
+          the ObjectCodecFactory behaves.
+        </para>
+      </listitem>
+    </varlistentry>
+
+  </variablelist>
+
+  <para>
+    Given the interfaces above, let's see how you can extend the
+    framework, starting with:
+  </para>
+
+  <section>
+    <title>Adding support for a new datatype</title>
+    <para>
+      Preon will
+      <emphasis>always</emphasis>
+      try at least one
+      strategy for decoding a field that has been marked with the
+      @Bound annotation: if it fails to find decicated support for the
+      datatype, then it will try to create a Codec using the
+      ObjectCodecFactory. This Codec will try to create a default
+      instance of the datatype, and then try to populate its
+      attributes, relying on the Preon annotations on those
+      attributes.
+    </para>
+    <para>
+      This may not be what you want. There are many datatypes that
+      have a more natural encoded representation. Preon allows you to
+      add support for this by implementing the CodecFactory.
+    </para>
+    <para>
+      In this chapter, we are going to add support for Dates, relying
+      on a very simple approach: we expect a Date to be encoded as the
+      number of milisecons elapsed since the epoch. And since it is
+      encoded as a number, we will respect the @BoundNumber annotation.
+    </para>
+  </section>
+
+</article>

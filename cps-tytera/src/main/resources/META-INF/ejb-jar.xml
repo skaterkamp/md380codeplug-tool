@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+This empty file is required to make openejb auto-deploy the EJBs
+-->
+
+
+<ejb-jar>
+    
+</ejb-jar>

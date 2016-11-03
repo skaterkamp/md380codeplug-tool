@@ -1,0 +1,253 @@
+# Copyright of this file: IZ2UUF
+#
+# Tytera MD-380/Retevis RT-3 binary file format
+#
+output "../c/md380"
+globalType TRDTFile size=262709
+
+record GeneralSettings [gen]
+	offset = 0x2265
+	length = 144
+	count = 1
+	
+	InfoScreenLine1     160 bit,   0 unicode
+	InfoScreenLine2     160 bit, 160 unicode
+	MonitorType           1 bit, 515 binary enum {0="silent" 1="open"}
+	DisableAllLeds        1 bit, 517 binary enum {0="off" 1="on"}
+	TalkPermitTone        2 bit, 520 binary enum {0b00="none" 0b01="digital" 0b10="analog" 0b11="both"}
+	PasswordAndLockEnable 1 bit, 522 binary enum {1="off" 0="on"}
+	CHFreeIndicationTone  1 bit, 523 binary enum {1="off" 0="on"}
+	DisableAllTone        1 bit, 525 binary enum {1="off" 0="on"}
+	SaveModeReceive       1 bit, 526 binary enum {0="off" 1="on"}
+	SavePreamble          1 bit, 527 binary enum {0="off" 1="on"}
+	IntroScreen           1 bit, 531 binary enum {0="charstring" 1="picture"}
+	RadioId              24 bit, 544 binary comment %F%1max value is 16776415%0 %f
+		validation %F%1if (rec->RadioId > 16776415) REPORT ("max is 16776415");%0
+%f	TxPreamble            8 bit, 576 binary comment %F%1ms=N*60, where N<=0<=144%f%0
+		validation %F%1if (rec->TxPreamble > 144) REPORT ("max value is 144");%f%0
+	GroupCallHangTime     8 bit, 584 binary comment %F%1time in ms, ms=N*100, N<=70, N must be multiple of 5%f%0
+		validation
+			%F%1if (rec->GroupCallHangTime > 70) REPORT ("max value is 70");
+%f%0			%F%1if ((rec->GroupCallHangTime %% 5) != 0) REPORT ("must be multiple of 5");%0
+%f
+	PrivateCallHangTime   8 bit, 592 binary comment %F%1time in ms, ms=N*100, N<=70, N must be multiple of 5%f%0
+		validation
+			%F%1if (rec->PrivateCallHangTime > 70) REPORT ("max value is 70");
+%f%0			%F%1if ((rec->PrivateCallHangTime %% 5) != 0) REPORT ("must be multiple of 5");%0
+%f		
+
+	VoxSensitivity        8 bit, 600 binary validation %F%1if (rec->VoxSensitivity < 1 || rec->VoxSensitivity > 10) REPORT ("allowed range 1...10");%f%0
+	RxLowBatteryInterval  8 bit, 624 binary comment %F%1time in seconds, s=N*5, N<=127%f%0
+		validation %F%1if (rec->TxPreamble > 127) REPORT ("max value is 127");%f%0
+	
+	CallAlertTone         8 bit, 632 binary comment %F%10=Continue, otherwise time in seconds, s=N*5, N<=240%f%0
+		validation %F%1if (rec->CallAlertTone > 240) REPORT ("max value is 240");%0
+%f	LoneWorkerRespTime    8 bit, 640 binary
+		validation %F%1if (rec->LoneWorkerRespTime < 1) REPORT ("min value is 1");%0
+%f	LoneWorkerReminderTime 8 bit, 648 binary
+		validation %F%1if (rec->LoneWorkerReminderTime < 1) REPORT ("min value is 1");%0
+%f	ScanDigitalHangTime   8 bit, 664 binary comment %F%1time in ms, ms=N*5, 5<=N<=100; default N=10%f%0
+		validation %F%1if (rec->ScanDigitalHangTime < 5 || rec->ScanDigitalHangTime > 100 || ((rec->ScanDigitalHangTime %% 5) != 0)) REPORT ("value between 5 and 100, multiple of 5");%f%0
+	ScanAnalogHangTime    8 bit, 672 binary comment %F%1time in ms, ms=N*5, 5<=N<=100; default N=10%f%0
+		validation %F%1if (rec->ScanAnalogHangTime < 5 || rec->ScanAnalogHangTime > 100 || ((rec->ScanAnalogHangTime %% 5) != 0)) REPORT ("value between 5 and 100, multiple of 5");%f%0
+	Unknown1              8 bit, 680 binary comment %F%1meaning still unknown, do not edit%f%0
+	KeypadLockTime        8 bit, 688 binary enum {1="5s" 2="10s" 3="15s" 0xff="manual"}
+	Mode                  8 bit, 696 binary enum {0x00="mr" 0xFF="ch"}
+	PowerOnPassword      32 bit, 704 RevBCD comment %F%18 digits%f%0
+	RadioProgPassowrd    32 bit, 736 RevBCD comment %F%18 digits%f%0
+	PcProgPassword       64 bit, 768 ascii format %F%1Converted to lower case; if not set, set to all 0xFF.%f%0
+	RadioName           256 bit, 896 unicode
+	
+end
+
+record TextMessage [txt]
+	offset = 0x23A5
+	length = 288
+	count = 50
+	zero = 0
+
+	deletionMarker        8 bit, 0 value = 0x00
+	Text               2304 bit, 0 unicode
+		validation %F%1if (rec->Text[0] == 0) REPORT ("no empty messages allowed");%f%0
+end
+
+record ChannelInformation [ch]
+	offset = 0x1F025
+	length = 64
+	count = 1000
+	
+	LoneWorker            1 bit,   0 binary enum {0="off" 1="on"}
+	fixed                 1 bit,   1 value = 1
+	Squelch               1 bit,   2 binary enum {0="tight" 1="normal"}
+	Autoscan              1 bit,   3 binary enum {0="off" 1="on"}
+	Bandwidth             1 bit,   4 binary enum {0="12.5" 1="25.0"}
+	ChannelMode           2 bit,   6 binary enum {2="digital" 1="analog"}
+	Colorcode             4 bit,   8 binary comment %F%10<=N<=15%f%0
+	RepeaterSlot          2 bit,  12 binary enum {0b01="slot1" 0b10="slot2"}
+	RxOnly                1 bit,  14 binary enum {0="off" 1="on"}
+	AllowTalkaround       1 bit,  15 binary enum {0="off" 1="on"}
+	DataCallConf          1 bit,  16 binary enum {0="off" 1="on"}
+	PrivateCallConf       1 bit,  17 binary enum {0="off" 1="on"}
+	Privacy               2 bit,  18 binary enum {0b00="none" 0b01="basic" 0b10="enhanced"}
+	PrivacyNo             4 bit,  20 binary comment %F%10<=N<=7 if privacy is enhanced; 0<=N<=15 if basic%f%0
+		validation %F%1if (rec->Privacy == 2 && rec->PrivacyNo > 7) REPORT ("out of range (with Privacy=enhanced, range is 0-7)");  %f%0
+	DisplayPttId          1 bit,  24 binary enum {0="on" 1="off"} # (NOTE, on/off is reversed!)
+	CompressedUdpHdr      1 bit,  25 binary enum {0="off" 1="on"}
+	fixed                 1 bit,  26 value=1
+	EmergencyAlarmAck     1 bit,  28 binary enum {0="off" 1="on"}
+	RxRefFrequency        2 bit,  30 binary enum {0b00="low"  0b01="medium" 0b10="high"}
+	AdmintCriteria        2 bit,  32 binary enum {0b00="always" 0b01="chFree" 0b10="CTCSS/DCS" 0b11="colorCode"}
+	Power                 1 bit,  34 binary enum {0="low" 1="high"}
+	Vox                   1 bit,  35 binary enum {0="off" 1="on"}
+	QtReverse             1 bit,  36 binary enum {0="180" 1="120"}
+	ReverseBurst          1 bit,  37 binary enum {0="off" 1="on"}
+	TxRefFrequency        2 bit,  38 binary enum {0b00="low" 0b01="medium" 0b10="high"}
+	fixed                 8 bit,  40 value=0xC3
+	ContactName          16 bit,  48 bind DigitalContact enum {0="none"}  # LSB and MSB; 0=none otherwise position in users list (max 989 although lists reaches 1000?)
+	Tot                   6 bit,  66 binary comment %F%10=infinite; otherwise time in seconds, s=15*N%f%0
+	TotRekeyDelay         8 bit,  72 binary comment %F%1number of seconds%f%0
+	EmergencySystem       6 bit,  82 binary  # nnnnnn 0=none otherwise 1<=n<=32 refers to entry in Digit Emergency System
+	ScanList              8 bit,  88 bind ScanList enum {0="none"} # nnnnnnnn 0=none otherwise position in the scan list (1 to 250).
+	GroupList             8 bit,  96 bind DigitalRxGroupList enum {0="none"} # nnnnnnnn 0=none otherwise position in the group list (1 to 250).
+	fixed                 8 bit, 104 value=1
+	Decode18              8 bit, 112 binary enum {0="off" 1="on"} # (available only if RX signaling system is not "off"); MSB is decode 8, LSB is decode 1
+	fixed                 8 bit, 120 value = 0xff
+	deletionMarker        8 bit, 128 value = 0xFF
+	RxFrequency          32 bit, 128 BCD comment %F%1Frequency * 10 Hz (for example, 43098570 = 430.98570 MHz)%f%0  # BCD x67 x45 x23 x41 means 412.34567 MHz
+	TxFrequency          32 bit, 160 BCD comment %F%1Frequency * 10 Hz (for example, 43098570 = 430.98570 MHz)%f%0  # BCD x67 x45 x23 x41 means 412.34567 MHz
+	CtcssDcsDecode       16 bit, 192 BCDT format %F%1CTCSS/DCS tones - See description of BCDT%f%0 enum {    # BCD CTCSS 67.0=x70 x07 254.1=x41 x25  DCS: D023N=x23 x80  D023I=x23 xC0 (the two most significant bits are: 00=CTCSS, 10=DCS-N, 11=DCS-I)
+			0 = "none"
+	  670 = "T67.0"  693 = "T69.3"  719 = "T71.9"  744 = "T74.4"  770 = "T77.0"  797 = "T79.7"  825 = "T82.5"  854 = "T85.4"  885 = "T88.5"
+	  915 = "T91.5"  948 = "T94.8"  974 = "T97.4" 1000 = "T100.0" 1035 = "T103.5" 1072 = "T107.2" 1109 = "T110.9" 1148 = "T114.8" 1188 = "T118.8"
+	 1230 = "T123.0" 1273 = "T127.3" 1318 = "T131.8" 1365 = "T136.5" 1413 = "T141.3" 1462 = "T146.2" 1514 = "T151.4" 1567 = "T156.7" 1598 = "T159.8"
+	 1622 = "T162.2" 1655 = "T165.5" 1679 = "T167.9" 1713 = "T171.3" 1738 = "T173.8" 1773 = "T177.3" 1799 = "T179.9" 1835 = "T183.5" 1862 = "T186.2"
+	 1899 = "T189.9" 1928 = "T192.8" 1966 = "T196.6" 1995 = "T199.5" 2035 = "T203.5" 2065 = "T206.5" 2107 = "T210.7" 2181 = "T218.1" 2257 = "T225.7"
+	 2291 = "T229.1" 2336 = "T233.6" 2418 = "T241.8" 2503 = "T250.3" 2541 = "T254.1"
+
+  0x20017 = "D023N"  0x20019 = "D025N"  0x2001A = "D026N"  0x2001F = "D031N"  0x20020 = "D032N"  0x20024 = "D036N"  0x2002B = "D043N"  0x2002F = "D047N"
+  0x20033 = "D051N"  0x20035 = "D053N"  0x20036 = "D054N"  0x20041 = "D065N"  0x20047 = "D071N"  0x20048 = "D072N"  0x20049 = "D073N"  0x2004A = "D074N"
+  0x20072 = "D114N"  0x20073 = "D115N"  0x20074 = "D116N"  0x2007A = "D122N"  0x2007D = "D125N"  0x20083 = "D131N"  0x20084 = "D132N"  0x20086 = "D134N"
+  0x2008F = "D143N"  0x20091 = "D145N"  0x20098 = "D152N"  0x2009B = "D155N"  0x2009C = "D156N"  0x200A2 = "D162N"  0x200A5 = "D165N"  0x200AC = "D172N"
+  0x200AE = "D174N"  0x200CD = "D205N"  0x200D4 = "D212N"  0x200DF = "D223N"  0x200E1 = "D225N"  0x200E2 = "D226N"  0x200F3 = "D243N"  0x200F4 = "D244N"
+  0x200F5 = "D245N"  0x200F6 = "D246N"  0x200FB = "D251N"  0x200FC = "D252N"  0x200FF = "D255N"  0x20105 = "D261N"  0x20107 = "D263N"  0x20109 = "D265N"
+  0x2010A = "D266N"  0x2010F = "D271N"  0x20112 = "D274N"  0x20132 = "D306N"  0x20137 = "D311N"  0x2013B = "D315N"  0x20145 = "D325N"  0x2014B = "D331N"
+  0x2014C = "D332N"  0x20157 = "D343N"  0x2015A = "D346N"  0x2015F = "D351N"  0x20164 = "D356N"  0x2016C = "D364N"  0x2016D = "D365N"  0x20173 = "D371N"
+  0x2019B = "D411N"  0x2019C = "D412N"  0x2019D = "D413N"  0x201A7 = "D423N"  0x201AF = "D431N"  0x201B0 = "D432N"  0x201BD = "D445N"  0x201BE = "D446N"
+  0x201C4 = "D452N"  0x201C6 = "D454N"  0x201C7 = "D455N"  0x201CE = "D462N"  0x201D0 = "D464N"  0x201D1 = "D465N"  0x201D2 = "D466N"  0x201F7 = "D503N"
+  0x201FA = "D506N"  0x20204 = "D516N"  0x2020B = "D523N"  0x2020E = "D526N"  0x20214 = "D532N"  0x20222 = "D546N"  0x20235 = "D565N"  0x2025E = "D606N"
+  0x20264 = "D612N"  0x20270 = "D624N"  0x20273 = "D627N"  0x20277 = "D631N"  0x20278 = "D632N"  0x2028E = "D654N"  0x20296 = "D662N"  0x20298 = "D664N"
+  0x202BF = "D703N"  0x202C8 = "D712N"  0x202D3 = "D723N"  0x202DB = "D731N"  0x202DC = "D732N"  0x202DE = "D734N"  0x202E7 = "D743N"  0x202F2 = "D754N"
+
+  0x30017 = "D023I"  0x30019 = "D025I"  0x3001A = "D026I"  0x3001F = "D031I"  0x30020 = "D032I"  0x30024 = "D036I"  0x3002B = "D043I"  0x3002F = "D047I"
+  0x30033 = "D051I"  0x30035 = "D053I"  0x30036 = "D054I"  0x30041 = "D065I"  0x30047 = "D071I"  0x30048 = "D072I"  0x30049 = "D073I"  0x3004A = "D074I"
+  0x30072 = "D114I"  0x30073 = "D115I"  0x30074 = "D116I"  0x3007A = "D122I"  0x3007D = "D125I"  0x30083 = "D131I"  0x30084 = "D132I"  0x30086 = "D134I"
+  0x3008F = "D143I"  0x30091 = "D145I"  0x30098 = "D152I"  0x3009B = "D155I"  0x3009C = "D156I"  0x300A2 = "D162I"  0x300A5 = "D165I"  0x300AC = "D172I"
+  0x300AE = "D174I"  0x300CD = "D205I"  0x300D4 = "D212I"  0x300DF = "D223I"  0x300E1 = "D225I"  0x300E2 = "D226I"  0x300F3 = "D243I"  0x300F4 = "D244I"
+  0x300F5 = "D245I"  0x300F6 = "D246I"  0x300FB = "D251I"  0x300FC = "D252I"  0x300FF = "D255I"  0x30105 = "D261I"  0x30107 = "D263I"  0x30109 = "D265I"
+  0x3010A = "D266I"  0x3010F = "D271I"  0x30112 = "D274I"  0x30132 = "D306I"  0x30137 = "D311I"  0x3013B = "D315I"  0x30145 = "D325I"  0x3014B = "D331I"
+  0x3014C = "D332I"  0x30157 = "D343I"  0x3015A = "D346I"  0x3015F = "D351I"  0x30164 = "D356I"  0x3016C = "D364I"  0x3016D = "D365I"  0x30173 = "D371I"
+  0x3019B = "D411I"  0x3019C = "D412I"  0x3019D = "D413I"  0x301A7 = "D423I"  0x301AF = "D431I"  0x301B0 = "D432I"  0x301BD = "D445I"  0x301BE = "D446I"
+  0x301C4 = "D452I"  0x301C6 = "D454I"  0x301C7 = "D455I"  0x301CE = "D462I"  0x301D0 = "D464I"  0x301D1 = "D465I"  0x301D2 = "D466I"  0x301F7 = "D503I"
+  0x301FA = "D506I"  0x30204 = "D516I"  0x3020B = "D523I"  0x3020E = "D526I"  0x30214 = "D532I"  0x30222 = "D546I"  0x30235 = "D565I"  0x3025E = "D606I"
+  0x30264 = "D612I"  0x30270 = "D624I"  0x30273 = "D627I"  0x30277 = "D631I"  0x30278 = "D632I"  0x3028E = "D654I"  0x30296 = "D662I"  0x30298 = "D664I"
+  0x302BF = "D703I"  0x302C8 = "D712I"  0x302D3 = "D723I"  0x302DB = "D731I"  0x302DC = "D732I"  0x302DE = "D734I"  0x302E7 = "D743I"  0x302F2 = "D754I"
+	}
+	
+	CtcssDcsEncode       16 bit, 208 BCDT format %F%1CTCSS/DCS tones - See description of BCDT%f%0 enum {    # same as CTCSS/DCS decode
+			0 = "none"
+	  670 = "T67.0"  693 = "T69.3"  719 = "T71.9"  744 = "T74.4"  770 = "T77.0"  797 = "T79.7"  825 = "T82.5"  854 = "T85.4"  885 = "T88.5"
+	  915 = "T91.5"  948 = "T94.8"  974 = "T97.4" 1000 = "T100.0" 1035 = "T103.5" 1072 = "T107.2" 1109 = "T110.9" 1148 = "T114.8" 1188 = "T118.8"
+	 1230 = "T123.0" 1273 = "T127.3" 1318 = "T131.8" 1365 = "T136.5" 1413 = "T141.3" 1462 = "T146.2" 1514 = "T151.4" 1567 = "T156.7" 1598 = "T159.8"
+	 1622 = "T162.2" 1655 = "T165.5" 1679 = "T167.9" 1713 = "T171.3" 1738 = "T173.8" 1773 = "T177.3" 1799 = "T179.9" 1835 = "T183.5" 1862 = "T186.2"
+	 1899 = "T189.9" 1928 = "T192.8" 1966 = "T196.6" 1995 = "T199.5" 2035 = "T203.5" 2065 = "T206.5" 2107 = "T210.7" 2181 = "T218.1" 2257 = "T225.7"
+	 2291 = "T229.1" 2336 = "T233.6" 2418 = "T241.8" 2503 = "T250.3" 2541 = "T254.1"
+
+  0x20017 = "D023N"  0x20019 = "D025N"  0x2001A = "D026N"  0x2001F = "D031N"  0x20020 = "D032N"  0x20024 = "D036N"  0x2002B = "D043N"  0x2002F = "D047N"
+  0x20033 = "D051N"  0x20035 = "D053N"  0x20036 = "D054N"  0x20041 = "D065N"  0x20047 = "D071N"  0x20048 = "D072N"  0x20049 = "D073N"  0x2004A = "D074N"
+  0x20072 = "D114N"  0x20073 = "D115N"  0x20074 = "D116N"  0x2007A = "D122N"  0x2007D = "D125N"  0x20083 = "D131N"  0x20084 = "D132N"  0x20086 = "D134N"
+  0x2008F = "D143N"  0x20091 = "D145N"  0x20098 = "D152N"  0x2009B = "D155N"  0x2009C = "D156N"  0x200A2 = "D162N"  0x200A5 = "D165N"  0x200AC = "D172N"
+  0x200AE = "D174N"  0x200CD = "D205N"  0x200D4 = "D212N"  0x200DF = "D223N"  0x200E1 = "D225N"  0x200E2 = "D226N"  0x200F3 = "D243N"  0x200F4 = "D244N"
+  0x200F5 = "D245N"  0x200F6 = "D246N"  0x200FB = "D251N"  0x200FC = "D252N"  0x200FF = "D255N"  0x20105 = "D261N"  0x20107 = "D263N"  0x20109 = "D265N"
+  0x2010A = "D266N"  0x2010F = "D271N"  0x20112 = "D274N"  0x20132 = "D306N"  0x20137 = "D311N"  0x2013B = "D315N"  0x20145 = "D325N"  0x2014B = "D331N"
+  0x2014C = "D332N"  0x20157 = "D343N"  0x2015A = "D346N"  0x2015F = "D351N"  0x20164 = "D356N"  0x2016C = "D364N"  0x2016D = "D365N"  0x20173 = "D371N"
+  0x2019B = "D411N"  0x2019C = "D412N"  0x2019D = "D413N"  0x201A7 = "D423N"  0x201AF = "D431N"  0x201B0 = "D432N"  0x201BD = "D445N"  0x201BE = "D446N"
+  0x201C4 = "D452N"  0x201C6 = "D454N"  0x201C7 = "D455N"  0x201CE = "D462N"  0x201D0 = "D464N"  0x201D1 = "D465N"  0x201D2 = "D466N"  0x201F7 = "D503N"
+  0x201FA = "D506N"  0x20204 = "D516N"  0x2020B = "D523N"  0x2020E = "D526N"  0x20214 = "D532N"  0x20222 = "D546N"  0x20235 = "D565N"  0x2025E = "D606N"
+  0x20264 = "D612N"  0x20270 = "D624N"  0x20273 = "D627N"  0x20277 = "D631N"  0x20278 = "D632N"  0x2028E = "D654N"  0x20296 = "D662N"  0x20298 = "D664N"
+  0x202BF = "D703N"  0x202C8 = "D712N"  0x202D3 = "D723N"  0x202DB = "D731N"  0x202DC = "D732N"  0x202DE = "D734N"  0x202E7 = "D743N"  0x202F2 = "D754N"
+
+  0x30017 = "D023I"  0x30019 = "D025I"  0x3001A = "D026I"  0x3001F = "D031I"  0x30020 = "D032I"  0x30024 = "D036I"  0x3002B = "D043I"  0x3002F = "D047I"
+  0x30033 = "D051I"  0x30035 = "D053I"  0x30036 = "D054I"  0x30041 = "D065I"  0x30047 = "D071I"  0x30048 = "D072I"  0x30049 = "D073I"  0x3004A = "D074I"
+  0x30072 = "D114I"  0x30073 = "D115I"  0x30074 = "D116I"  0x3007A = "D122I"  0x3007D = "D125I"  0x30083 = "D131I"  0x30084 = "D132I"  0x30086 = "D134I"
+  0x3008F = "D143I"  0x30091 = "D145I"  0x30098 = "D152I"  0x3009B = "D155I"  0x3009C = "D156I"  0x300A2 = "D162I"  0x300A5 = "D165I"  0x300AC = "D172I"
+  0x300AE = "D174I"  0x300CD = "D205I"  0x300D4 = "D212I"  0x300DF = "D223I"  0x300E1 = "D225I"  0x300E2 = "D226I"  0x300F3 = "D243I"  0x300F4 = "D244I"
+  0x300F5 = "D245I"  0x300F6 = "D246I"  0x300FB = "D251I"  0x300FC = "D252I"  0x300FF = "D255I"  0x30105 = "D261I"  0x30107 = "D263I"  0x30109 = "D265I"
+  0x3010A = "D266I"  0x3010F = "D271I"  0x30112 = "D274I"  0x30132 = "D306I"  0x30137 = "D311I"  0x3013B = "D315I"  0x30145 = "D325I"  0x3014B = "D331I"
+  0x3014C = "D332I"  0x30157 = "D343I"  0x3015A = "D346I"  0x3015F = "D351I"  0x30164 = "D356I"  0x3016C = "D364I"  0x3016D = "D365I"  0x30173 = "D371I"
+  0x3019B = "D411I"  0x3019C = "D412I"  0x3019D = "D413I"  0x301A7 = "D423I"  0x301AF = "D431I"  0x301B0 = "D432I"  0x301BD = "D445I"  0x301BE = "D446I"
+  0x301C4 = "D452I"  0x301C6 = "D454I"  0x301C7 = "D455I"  0x301CE = "D462I"  0x301D0 = "D464I"  0x301D1 = "D465I"  0x301D2 = "D466I"  0x301F7 = "D503I"
+  0x301FA = "D506I"  0x30204 = "D516I"  0x3020B = "D523I"  0x3020E = "D526I"  0x30214 = "D532I"  0x30222 = "D546I"  0x30235 = "D565I"  0x3025E = "D606I"
+  0x30264 = "D612I"  0x30270 = "D624I"  0x30273 = "D627I"  0x30277 = "D631I"  0x30278 = "D632I"  0x3028E = "D654I"  0x30296 = "D662I"  0x30298 = "D664I"
+  0x302BF = "D703I"  0x302C8 = "D712I"  0x302D3 = "D723I"  0x302DB = "D731I"  0x302DC = "D732I"  0x302DE = "D734I"  0x302E7 = "D743I"  0x302F2 = "D754I"
+
+	}
+	TxSignalingSyst       3 bit, 237 binary  # 000=Off nnn=DTMF-n (1 <= n <= 4)
+	RxSignalingSyst       3 bit, 229 binary  # 000=Off nnn=DTMF-n (1 <= n <= 4)
+	fixed                 8 bit, 240 value=0xff
+	fixed                 8 bit, 248 value=0xff
+	Name key            256 bit, 256 unicode # 16 unicode characters
+end
+
+record DigitalContact [cont]
+	offset = 0x61A5
+	length = 36
+	count = 1000
+
+	deletionMarker      8 bit,   0 value = 0xFF
+	deletionMarker      8 bit,   8 value = 0xFF
+	deletionMarker      8 bit,  16 value = 0xFF
+	CallId key         24 bit,   0 binary #: (min=0, max=16776415 0xFFFCDF) CallIds must be unique
+	fixed               2 bit,  24 value=0b11
+	CallReceiveTone     1 bit,  26 binary enum {0="off" 1="on"}
+	CallType            2 bit,  30 binary enum {0b01="group" 0b10="private" 0b11="all"} # ALL=(CallType always 16776415)
+	Name              256 bit,  32 unicode
+end
+
+record DigitalRxGroupList [rxgrp]
+	offset = 0xEE45
+	length = 96
+	count = 250
+	zero = 0x00
+	
+	deletionMarker      8 bit,   0 value = 0
+	Name key          256 bit, 000 unicode
+	ContactMember[32]  16 bit, 256 bind DigitalContact
+end
+
+record ZoneInformation [zone]
+	offset = 0x14C05
+	length = 64
+	count = 250
+	zero = 0x00
+	
+	deletionMarker      8 bit,   0 value = 0
+	Name key          256 bit, 000 unicode
+	ChannelMember[16]  16 bit, 256 bind ChannelInformation
+end
+
+
+record ScanList [scan]
+	offset = 0x18A85
+	length = 104
+	count = 250
+	zero = 0x00
+
+	deletionMarker      8 bit,   0 value = 0
+	Name key          256 bit, 000 unicode
+	PriorityCh1        16 bit, 256 bind ChannelInformation enum {0xFFFF="none" 0x0000="selected"} # 0xFFFF=None 0x0000=Selected 0xnnnn=the n-th entry in the CHANNELS INFORMATION only if included in "Channel member"
+	PriorityCh2        16 bit, 272 bind ChannelInformation enum {0xFFFF="none" 0x0000="selected"} # 0xFFFF=None 0x0000=Selected 0xnnnn=the n-th entry in the CHANNELS INFORMATION only if included in "Channel member"; if "Priority ch 1" is none, this must be none; the priority channel 2 must be different from priority channel 1.
+	TXDesignatedCh     16 bit, 288 bind ChannelInformation enum {0xFFFF="none" 0x0000="last"} # 0x0000=None 0xFFFF=Last active channel 0xnnnn=the n-th entry in the CHANNELS INFORMATION
+	SignHoldTime        8 bit, 312 binary comment %F%1Time in ms, N * 25 = ms    minMs=50 (n=2) maxMs=6375 (n=255)%f%0
+	PrioSamplTime       8 bit, 320 binary comment %F%1Time in ms, N * 250 = ms   minMs=750 (n=3) maxMs=6375 (n=255) maxMs=7750 (n=31)%f%0
+	ChannelMember[31]  16 bit, 336 bind ChannelInformation
+end

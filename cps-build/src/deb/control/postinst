@@ -1,0 +1,17 @@
+#!/bin/sh
+
+chmod ug+x [[fhs.prefix]]/bin/cpstuff
+#gzip /usr/share/doc/docbook-letter/LICENSE.txt
+
+varprefix=[[fhs.log.prefix]]
+
+mkdir -p $varprefix/log
+mkdir -p $varprefix/cps
+
+chmod ug=rwx,o=rx,g+s $varprefix/log
+chmod ug=rwx,o=rx,g+s $varprefix/cps
+chown -R migtool [[fhs.prefix]]
+chgrp -R migtool [[fhs.prefix]]
+chown -R migtool $varprefix
+chgrp -R migtool $varprefix
+

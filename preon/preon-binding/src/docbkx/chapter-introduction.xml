@@ -1,0 +1,669 @@
+<!--
+
+    Copyright (c) 2009-2016 Wilfred Springer
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+-->
+<article>
+
+  <articleinfo>
+    <title>Preon Introduction</title>
+    <author>
+      <firstname>Wilfred</firstname>
+      <surname>Springer</surname>
+    </author>
+  </articleinfo>
+
+  <section>
+    <title>Introduction</title>
+    <para>
+      Decoding a compressed data format in Java can be quite a mundane
+      task. This chapter will hopefully convince you that it does not
+      need to be all that complicated. Preon aims to provide a simple
+      and powerful solution.
+    </para>
+    <para>
+      This chapter will introduce the most important principles behind
+      Preon. Don't expect this chapter to be an exhaustive reference
+      guide for everything Preon has to offer. Completeness is not
+      considered to be achieved if there is nothing else to add; it is
+      considered to be achieved if there is nothing left to be taken
+      out. The sole objective of this chapter is to prevent surprises
+      once you start to use Preon.
+    </para>
+  </section>
+  <section>
+    <title>Declarative Binding</title>
+    <para>
+      Preon is not just a library allowing you to access bits in a
+      bitstream, or a library that has a number of convenience
+      mechansisms allowing you read data from a compressed bitstream
+      encoded format. It is much more than that, and - just like IoC
+      - it obeys the Holywood paradigm: "don't call us, we call
+      you."
+    </para>
+    <para>
+      If Preon would just have been a library of functions
+      facilitating different compression mechanisms, then you would
+      have been required to load the decoded data into your own data
+      structures yourself. But Preon turns that arround: you just
+      provide it the blueprints of the data structure, and Preon
+      will make sure the data gets loaded into the appropriate
+      places.
+    </para>
+    <para>
+      Now, the big question is of course: how does Preon know how to
+      load data from a sequence of bits and reconstruct a data
+      structure? What is the recipe? It turns out, the recipe is the
+      data structure itself; it's just classes and attributes,
+      period. And in case the information provided by the data
+      structure is not enough, we will just augment it using
+      annotations.
+    </para>
+    <para>
+      So, let's look at an example.
+      <xref
+              linkend="example-rectangle"/>
+      defines a data structure
+      defining the coordinates of the two points defining a
+      rectangle, in some coordinate system.
+    </para>
+    <example id="example-rectangle">
+      <title>First data structure</title>
+      <programlisting><![CDATA[class Rectangle {
+private int x1;
+private int y1;
+private int x2;
+private int y2;
+}
+      ]]></programlisting>
+    </example>
+    <para>
+      Let's just say that the data would be encoded on disk as a
+      sequence of four 32-bit integers. In that case, this is the way
+      you would decode a Rectangle from a file:
+    </para>
+    <programlisting><![CDATA[
+byte[] in = new byte[] {
+  0, 0, 0, 1,
+  0, 0, 0, 2,
+  0, 0, 0, 3, 
+  0, 0, 0, 4
+};
+Codec<Rectangle> codec = Codecs.create(Rectangle.class);
+Rectangle rect = Codecs.decode(codec, in);
+    ]]></programlisting>
+    <para>
+      That's how easy it is. Although... To be perfectly honest, the
+      example is not entirely complete yet. If you would use the code
+      as-is, you would not get anything at all. (Well, an empty
+      Rectangle, maybe.) Problem is, Preon does
+      <emphasis>not</emphasis>
+      assume anything unless you explicitly
+      specify at least something. In order to tell Preon that it needs
+      to decode the x1, y1, x2 and y2 fields, you will need to
+      explicitly state it in the definition of the data structure,
+      like this:
+    </para>
+    <example id="example-rectangle-annotated">
+      <title>First data structure annotated</title>
+      <programlisting><![CDATA[class Rectangle {
+  @Bound private int x1;
+  @Bound private int y1;
+  @Bound private int x2;
+  @Bound private int y2;
+}]]></programlisting>
+    </example>
+    <para>
+      If you run the same code now, you will get a populated
+      Rectangle.
+    </para>
+  </section>
+  <section>
+    <title>Convention over configuration</title>
+    <para>
+      So, binding a Java data structure to its encoded
+      representation seems to be fairly easy. However, Preon intends
+      to support bitstream encoded data. That is, in many cases you
+      want don't want to allocate the full 32 bits for decoding an
+      integer, and you would just rely on a couple of bits
+      instead. Or what if you don't want big endian byte order, but
+      little endian byte order instead?
+    </para>
+    <para>
+      All of this turns out to be additional configuration only. If
+      you just specify the @Bound annotation, you basically tell
+      Preon to use its default mapping to decode an integer. And by
+      default, it will assume big endian byte order, and decode an
+      integer using 32 bits. If you want to change that, you just
+      need to tell Preon to do so, using other annotations, or
+      (sometimes) other annotation attributes.
+    </para>
+    <example id="example-two-bytes">
+      <title>Encoding integers using two bytes</title>
+      <programlisting><![CDATA[class Rectangle {
+  @BoundNumber(size="16") private int x1;
+  @BoundNumber(size="16") private int y1;
+  @BoundNumber(size="16") private int x2;
+  @BoundNumber(size="16") private int y2;
+}]]></programlisting>
+    </example>
+    <para>
+      <xref linkend="example-two-bytes"/>
+      changes the example given
+      before to make Preon allocate only two bytes (16 bits) per
+      number.
+      <xref linkend="example-little-endian"/>
+      illustrates
+      how to change byte order.
+    </para>
+    <example id="example-two-bytes-little-endian">
+      <title>Encoding integers using little endian byte order</title>
+      <programlisting><![CDATA[class Rectangle {
+  @BoundNumber(byteOrder=LittleEndian) private int x1;
+  @BoundNumber(byteOrder=LittleEndian) private int y1;
+  @BoundNumber(byteOrder=LittleEndian) private int x2;
+  @BoundNumber(byteOrder=LittleEndian) private int y2;
+}]]></programlisting>
+    </example>
+  </section>
+  <section>
+    <title>More than just numbers</title>
+    <para>
+      Preon is not just about decoding numbers. By default, it
+      already supports much more than that. Here are some examples:
+    </para>
+    <programlisting><![CDATA[
+// Will just read one bit, interpreting 1 as true, and 0 als false
+@Bound boolean visible;
+
+// Reads a String from a fixed number of bytes
+@BoundString(size="10") String value;
+
+// Reads a bit from the in, and interprets it as an enum value,
+// interpreting the number as its ordinal value.
+@BoundNumber(size="1") Type type;]]></programlisting>
+    <para>
+      The first example is a good example of convention over
+      configuration; an @Bound annoation on a boolean attribute will
+      cause Preon to read one bit, and interpret it as true in case
+      it's the value 1, and false otherwise.
+    </para>
+    <para>
+      The String example illustrates one way of decoding
+      Strings. Note that (in this case) the size attribute denotes
+      <emphasis>the number of bytes</emphasis>
+      and not the number of
+      bits. In this case, the bytes read will be interpreted as
+      US-ASCII.
+    </para>
+    <para>
+      The third example illustrates how an type-safe enum value is
+      bound to the bit in. Again, it relies on an existing
+      annotation that we have already seen before: the @BoundNumber
+      annotation specifies how a certain numeric value needs to be
+      read. That numeric value read needs to correspond to the
+      ordinal value of one of the enum's values.
+    </para>
+  </section>
+  <section id="section-composite-content">
+    <title>Composite content</title>
+    <para>
+      The examples that we have seen so far were all pretty simple:
+      in all cases, it was just about a sequence of attributes. But
+      what if - in your format - you have have some higher-level
+      conceptual organization of some elements? How would you need
+      to deal with that?
+    </para>
+    <para>
+      Let's take our Rectangle from
+      <xref
+              linkend="example-rectangle-annotated"/>
+      as an example. What if we want
+      it to have a fill and border color as well? Would this be the
+      solution?
+    </para>
+    <programlisting><![CDATA[@Bound int fillRed;
+@Bound int fillGreen;
+@Bound int fillBlue;
+@Bound int borderRed;
+@Bound int borderGreen;
+@Bound int borderBlue;]]></programlisting>
+    <para>
+      ... or would you rather have this?
+    </para>
+    <programlisting><![CDATA[@Bound RgbColor fillColor;
+@Bound RgbColor borderColor;]]></programlisting>
+    <para>
+      I hope you agree with me that the second option would be the
+      preferred one. And it turns out this is possible. If you
+      define your RgbColor class as in<xref
+            linkend="example-rgb-color"/>, then you
+      <emphasis>can</emphasis>
+      used the RgbColor type as attributes
+      in other classes.
+    </para>
+    <example id="example-rgb-color">
+      <title>RGB Color</title>
+      <programlisting><![CDATA[class RgbColor {
+  @Bound int red;
+  @Bound int green;
+  @Bound int blue;
+}]]></programlisting>
+    </example>
+    <para>
+      It's imporant to emphasize that - from a processing
+      expectations point of view - there is no difference between
+      both options. Bot options will result in 6 numeric values
+      being read consecutively. However, the second allows you to
+      stick with the conceptual organization of your file, results
+      in less code and makes it easier to maintain.
+    </para>
+    <para>
+      Just to complete the example,
+      <xref
+              linkend="example-rectangle-colored"/>
+      gives the source code of
+      the Rectangle supporting colors.
+    </para>
+    <example id="example-rectangle-colored">
+      <title>Colored Rectangle</title>
+      <programlisting><![CDATA[class Rectangle {
+  @Bound private RgbColor fillColor;
+  @Bound private RgbColor borderColor;
+  @Bound private int x1;
+  @Bound private int y1;
+  @Bound private int x2;
+  @Bound private int y2;
+}]]></programlisting>
+    </example>
+  </section>
+  <section>
+    <title>Inheritance</title>
+    <para>
+      In the previous section (<xref
+            linkend="section-composite-content"/>), we saw one way of
+      factoring out commonalities. Preon allows you to factor out
+      recurring snippets of content and use those definitions at
+      various places. However, it is
+      <emphasis>not</emphasis>
+      the
+      only way to organize content. In this section, I will show you
+      another way.
+    </para>
+    <para>
+      <xref linkend="example-rectangle-colored"/>
+      defines just one
+      shape. And of course, that shape also defines some color
+      attributes. But what if your application defines more
+      shapes. And what if you want all of those shapes to define the
+      same color attributes?
+    </para>
+    <para>
+      In order to facilitate scenarios like these, Preon supports
+      inheritance. That is, subclasses will
+      <emphasis>allways</emphasis>
+      inherit the bindings defined by
+      the superclass. This allows you to define color bindings on a
+      Shape superclass, and have all of the other shape-specific
+      attributes on the various Shape subclsses.
+    </para>
+    <example id="example-shape-inheritance">
+      <title>Shape Inheritance</title>
+      <programlisting><![CDATA[
+class Shape {
+  @Bound fillColor;
+  @Bound lineColor;
+}
+
+class Rectangle extends Shape {
+  @Bound private int x1;
+  @Bound private int y1;
+  @Bound private int x2;
+  @Bound private int y2;
+}
+
+class Circle extends Shape {
+  @Bound int centerX;
+  @Bound int centerY;
+  @Bound int radius;
+}]]></programlisting>
+    </example>
+    <para>
+      When Preon is required to decode a subclass, it will always
+      first process the inherited bindings. In case of a Rectangle,
+      it will first decode the colors it inherited from Shape, and
+      only then the attributes of the rectangle itself.
+    </para>
+  </section>
+  <section>
+    <title>Lists</title>
+    <para>
+      The 'struct'-type of support highlighted in the previous
+      sections is an important concept, but not sufficient. We also
+      need a 'sequence' concept.
+    </para>
+    <para>
+      In Preon, the @BoundList annotation allows you to address all
+      of these 'sequencing' concerns. And the annotation driven
+      approach makes it fairly easy to use.
+    </para>
+    <para>
+      Let's just say you want to store a pseudo-Mondriaan type of
+      painting, existing of colored rectangles only. In that case,
+      you could use code like this:
+    </para>
+    <programlisting><![CDATA[
+class PseudoMondriaan {
+  @BoundList(type=Rectangle.class, size="20") 
+  Rectangle[] rectangles;
+}]]></programlisting>
+    <para>
+      The code given above simply states that - whenever you want to
+      decode a PseudoMondriaan, read 20 Rectangle instances
+      according to its specifications, and store them as them as the
+      attribute 'rectangles'.
+    </para>
+    <para>
+      Now, it is of course questionable if it is realistic to expect
+      that every PseudoMondriaan contains exactly 20
+      rectangles. However, the @BoundList's size attribute also
+      takes expressions that are evaluated at runtime. More on that in
+      <xref linkend="section-expressions"/>.
+    </para>
+  </section>
+  <section>
+    <title>Lazy loading lists</title>
+    <para>
+      Arrays are not the only type of lists supported by default;
+      Preon also supports Lists (the java.util.List) kind, as you
+      might have expected. There is however a difference with the way
+      it treats Lists.
+    </para>
+    <para>
+      Whenever Preon decodes a List of items from the bit in,
+      there is a chance it will inject a lazy-loading List into the
+      List type attribute instead of fully-populated eagerly loaded
+      List instance. I say there is 'a chance', since it really
+      depends on a number of conditions if it will do so. The actual
+      conditions are quite complex, but they can be summarized as "the
+      principle of the least surprise."
+    </para>
+    <programlisting><![CDATA[
+class PseudoMondriaan {
+  @BoundList(size="20", type=Rectangle.class)
+  private List<Rectangle> rectangles;
+}
+    ]]></programlisting>
+    <para>
+      Preon has a preference for loading data lazily. In the above
+      case, the size of each Rectangle instance is known in
+      advance. In fact, we know that the number of bits occupied by
+      the entire List will be 20 times the size of single
+      Rectangle. And we also know that - in order to get the third
+      element - we just need to skip over the first two elements (the
+      number of bits of a single Rectangle element, multiplied by
+      two).
+    </para>
+    <para>
+      Using a lazy loading List is in the above case probably a fairly
+      efficient thing to do. There are other cases in which this would
+      be much harder, typically when the List item's size is
+      determined at runtime. In cases like these, Preon will
+      automatically pick an alternative Codec, most likely one that
+      eagerly loads the data.
+    </para>
+  </section>
+  <section id="section-expressions">
+    <title>Expressions</title>
+    <para>
+      By now, you probably wondered a couple of times why the size
+      attribute on @BoundList and @BoundString accepts String values
+      instead of numbers. It seems rather a wasteful, and the compiler
+      is not going to help you to make sure you enter numeric values
+      in these situations.
+    </para>
+    <para>
+      The truth is, these attributes expect more than just numeric
+      values: a lot of annotations in Preon allow you to pass in
+      expressions, instead of numeric values. The size attribute on
+      @BoundList and @BoundString are just examples of cases in which
+      these expresions are accepted.
+    </para>
+    <programlisting><![CDATA[class PseudoMondriaan {
+  @Bound int numberOfRectangles;
+  @BoundList(size="numberOfRectangles", type=Rectangle.class)
+    List<Rectangle> rectangles;
+}]]></programlisting>
+    <para>
+      The example above is still a fairly simple example. It refers to
+      a variable called numberOfRectangles, and it's now hard to guess
+      how this variable is getting resolved: by default, Preon will
+      try to resolve variables into bound attributes defined
+      before. (There are other types of references, but let's stick
+      with this simple example for now.)
+    </para>
+    <para>
+      Now, you can obviously construct more complex expressions than
+      this. And in order to do that, you can use a range of arithmetic
+      or logical operators. Here are some examples:
+    </para>
+    <programlisting><![CDATA[
+@BoundList(size="width * height") byte[] pixels;
+@BoundNumber(size="nrBits * 2") int value;
+// Clearly pointless, but you know...
+@BoundString(size="x * (y + z) / 23 ^ t");
+    ]]></programlisting>
+  </section>
+  <section id="section-limbo">
+    <title>Limbo</title>
+    <para>
+      The expression language used in the examples of the previous
+      language is Limbo. Limbo is a fairly small expression language,
+      and is explicitly aiming at
+      <emphasis>not</emphasis>
+      being as
+      feature rich as JSP's EL or OGNL, and for good reason.
+    </para>
+    <para>
+      First of all, JSP's EL and OGNL allow you to call methods on
+      objects. Limbo does
+      <emphasis>not</emphasis>
+      allow you to call
+      methods, because<emphasis>it wants to capture the meaning of
+      the expression explicitly</emphasis>. And it would be impossible
+      to capture the meaning of your expression if it would involve
+      operations defined outside of Limbo itself. So, Limbo works on
+      data only, and the number of operators is finite.
+    </para>
+    <para>
+      Limbo is not just about evaluating expressions. It also wants to
+      capture those expressions in such a way that it will be able to
+      generate
+      <emphasis>human-readable</emphasis>
+      expressions from it
+      afterwards. So, if these would be the Limbo expressions:
+    </para>
+    <screen><![CDATA[width * height
+a^2 + b^2 == c^2]]></screen>
+    <para>
+      ... then Limbo wants to be capable of turning this into this:
+    </para>
+    <itemizedlist spacing="compact">
+      <listitem>
+        <para>
+          width of the image times the height of the image
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          the sum of a to the power of 2 and b to the power of two
+          equals c to the power of two
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      In a couple of sections, we will see why this is relevant.
+    </para>
+  </section>
+  <section>
+    <title>Conditionals</title>
+    <para>
+      The size attribute defined on the @BoundList annotation
+      obviously acts as a type of control mechanism. However, in order
+      to be able to deal with the majority of encoding formats, we
+      need to introduce a couple of other control structures, in order
+      to support with conditionals.
+    </para>
+    <para>
+      Now, the number of places in which you would be able to use a
+      condition is again open-ended. Preon is extensible, so you can
+      define your own annotations using conditions wherever you
+      like. However, the framework supports some by default, and we
+      are going to mention two here.
+    </para>
+    <para>
+      The first one is the @If annotations. By putting this annotation
+      in front of an attribute, you basically state that - whatever
+      attribute is following - it should only be decoded if the
+      condition inside the @If holds.
+    </para>
+    <para>
+      Now, let's see what that means in our example. Let's just say
+      that a Shape allows you to specify that you want a dashed
+      border, and that it defines some additional attributes allowing
+      you to control how the dashes are drawn.
+    </para>
+    <programlisting><![CDATA[
+class Shape {
+  @Bound Color fillColor;
+  @Bound Color borderColor;
+  @Bound boolean dashed;
+  @If("dashed")
+  @Bound int spaceBetweenDashes;
+}
+    ]]></programlisting>
+  </section>
+  <section>
+    <title>Complex references</title>
+    <para>
+      <xref linkend="section-expressions"/>
+      already mentioned that
+      Preon does not limit you to refer to other bound attributes on
+      the same class only. It also supports the dot operator (to
+      access attributes of objects referenced) and the item operator (
+      to access items in list-type attributes).
+      <xref
+              linkend="example-valid-references"/>
+      lists some sample references.
+    </para>
+    <example id="example-valid-references">
+      <title>Valid references</title>
+      <programlisting><![CDATA[
+a.b.c
+a.b[0].d
+a.b[e].d
+a.b[e * 21].d
+    ]]></programlisting>
+    </example>
+    <para>
+      Another thing that Preon allows you to do is to refer to the
+      <firstterm>outer</firstterm>
+      context.
+      <xref
+              linkend="example-outer-context"/>
+      relies on this to refer to the
+      <envar>bitsPerColorComponent</envar>
+      variable in the Image, from
+      within the RgbColor object.
+    </para>
+    <example id="example-outer-context">
+      <title>Outer context references</title>
+      <programlisting><![CDATA[
+public class Image {
+  @Bound int bitsPerColorComponent;
+  @Bound int nrColors;
+  @BoundList(size="nrColors") RgbColor[] colors;
+  ...
+  public class RgbColor {
+    @BoundNumber(size="outer.bitsPerColorComponent") red;
+    @BoundNumber(size="outer.bitsPerColorComponent") green;
+    @BoundNumber(size="outer.bitsPerColorComponent") blue;
+  }
+}
+      ]]></programlisting>
+    </example>
+  </section>
+  <section>
+    <title>Documentation</title>
+    <para>
+      Various sections in this chapter already alluded to the fact
+      that Preon aims at capturing dependencies between different
+      pieces of data explicitly, in order to be able to generate
+      documentation. If this is the first time you read about Preon,
+      you might wonder what that was all about.
+    </para>
+    <para>
+      Preon was born out of unease with an existing situation. In that
+      existing situation, one guy was responsible for the software for
+      decoding a complicated file format, while another was
+      responsible for encoding data; both of them were responsible to
+      keep documentation in sync. In the end, everything turned to be
+      out of sync. Keeping the encoder in sync with the decoder was
+      hard, and the documentation was always out of whack.
+    </para>
+    <para>
+      Preon aims to change all of that: it set of to provide a
+      framework in which you specify the encoding format once, and get
+      decoders, encoders
+      <emphasis>and documentation</emphasis>
+      for
+      free.
+    </para>
+    <para>
+      So, how does it work? Well, if you remember the first example in
+      this chapter, we constructed a Codec and used a Codec using the
+      Codecs class, like this:
+    </para>
+    <programlisting><![CDATA[Codec<Rectangle> codec = Codecs.create(Rectangle.class);
+Rectangle rect = Codecs.decode(codec, in);]]></programlisting>
+    <para>
+      Generating documentation just requires using another operation
+      on Codecs:
+    </para>
+    <programlisting><![CDATA[Codec<Rectangle> codec = Codecs.create(Rectangle.class);
+Codecs.document(codec, DocumentType.Html, new File(...);]]></programlisting>
+    <para>
+      When you apply that to<xref
+            linkend="example-shape-inheritance"/>, this is what you get:
+    </para>
+    <figure>
+      <title>Sample report</title>
+      <mediaobject>
+        <imageobject>
+          <imagedata width="9cm" fileref="src/docbkx/report.png"/>
+        </imageobject>
+      </mediaobject>
+    </figure>
+  </section>
+</article>

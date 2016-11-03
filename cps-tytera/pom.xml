@@ -1,0 +1,70 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>de.katerkamp.dmr</groupId>
+		<artifactId>md380codeplug-tool</artifactId>
+		<version>0.1</version>
+	</parent>
+	<groupId>de.katerkamp.dmr</groupId>
+	<artifactId>cps-tytera</artifactId>
+	<packaging>jar</packaging>
+	<version>0.1</version>
+	<name>CPS Tytera Specifics</name>
+	<description>Codeplug Stuff Tytera RDT file interface</description>
+	
+	<build>
+		<finalName>${project.artifactId}-${project.version}</finalName>
+		<defaultGoal>install</defaultGoal>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<includes>
+					<include>*.properties</include>
+				</includes>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.asciidoctor</groupId>
+				<artifactId>asciidoctor-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>com.github.os72</groupId>
+				<artifactId>protoc-jar-maven-plugin</artifactId>
+			</plugin>
+
+		</plugins>
+	</build>
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>de.katerkamp.dmr</groupId>
+			<artifactId>cps-commons</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.codehaus.preon</groupId>
+			<artifactId>preon-binding</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>javax.el</groupId>
+			<artifactId>javax.el-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>javax.validation</groupId>
+			<artifactId>validation-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-validator</artifactId>
+		</dependency>
+	</dependencies>
+</project>
+
+

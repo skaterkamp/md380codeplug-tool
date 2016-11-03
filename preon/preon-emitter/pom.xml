@@ -1,0 +1,38 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.codehaus.preon</groupId>
+    <artifactId>preon</artifactId>
+    <version>1.1-SNAPSHOT</version>
+  </parent>
+  <artifactId>preon-emitter</artifactId>
+  <name>CPS Preon Emitter</name>
+  <description>
+    A couple of abstractions for emitting data while decoding, and
+    annotating hexdumps with the details found.
+  </description>
+  <dependencies>
+    <dependency>
+      <groupId>org.codehaus.preon</groupId>
+      <artifactId>preon-binding</artifactId>
+      <version>1.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <version>1.8.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.hamcrest</groupId>
+      <artifactId>hamcrest-all</artifactId>
+      <version>1.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

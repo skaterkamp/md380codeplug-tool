@@ -1,0 +1,79 @@
+= Codeplug Stuff Installation Instructions
+V0.1 Stefan Katerkamp
+
+Codeplug Stuff provides a command line tool for DMR Codeplug Data File creation.
+
+
+== Prerequisites
+
+=== Debian Package
+
+The md380codeplug-tool deb package needs to be transferred manually to the
+debian system into directory /var/tmp:
+
+* md380codeplug-tool_${project.version}_all.deb
+
+As the system is connected to a debian repository, all other Debian standard packages
+will be pulled and installed automatically.
+
+NOTE: The current Debian version is Jessie, but this does not contain Java 8.
+For this reason apt must have access to a debian jessie-backports repo.
+
+In other words, in addition to the standard Debian Jessie entries, the 
+following additional line in /etc/apt/sources.list (or in a 
+file in /etc/apt/sources.list.d) must exist, with
+_repo_ pointing to the local repository:
+
+----
+deb http://_repo_/debian jessie-backports main contrib non-free
+----
+
+
+== Installation
+
+Prepare:
+
+----
+sudo aptitude update && aptitude upgrade
+sudo aptitude install gdebi-core
+----
+
+Then install md380codeplug-tool deb package using gdebi. 
+Gdebi is an interactive command, follow its instructions.
+
+----
+sudo aptitude remove md380codeplug-tool # just in case there are old ones
+sudo gdebi /var/tmp/md380codeplug-tool_${package.version}_all.deb
+----
+
+== Verify Installation
+
+Check that java 8 is default:
+
+----
+java -version
+----
+
+The JAVA_HOME dir would be:
+
+----
+jrunscript -e 'java.lang.System.out.println(java.lang.System.getProperty("java.home"));'
+----
+
+If not, make java 8 default:
+
+----
+sudo /usr/sbin/update-java-alternatives -s java-1.8.0-openjdk-amd64
+----
+
+After installation the following file system structure exists:
+/opt/cps::
+The main installation directory, containing subdirs bin, etc and lib.
+
+/var/opt/cps::
+The backup and log directory.
+
+/etc/profile.d/sctools.sh::
+Shell environment setup.
+
+

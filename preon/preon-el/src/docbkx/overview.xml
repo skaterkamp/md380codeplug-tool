@@ -1,0 +1,558 @@
+<!--
+
+    Copyright (c) 2009-2016 Wilfred Springer
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+-->
+<article>
+  
+  <articleinfo>
+    <title>Limbo Overview</title>
+    <author>
+      <firstname>Wilfred</firstname>
+      <surname>Springer</surname>
+    </author>
+    <keywordset>
+      <keyword>expression language</keyword>
+      <keyword>antlr</keyword>
+      <keyword>preon</keyword>
+    </keywordset>
+  </articleinfo>
+  
+  <section>
+    <title>Introduction</title>
+    <para>
+      Limbo is the code name of an expression language used in
+      Preon<footnote>
+      <para>Limbo used to be a separate project, however when moving
+      to Preon 2.0, knowing that Limbo is only used inside Preon, it
+      did not seem to make an aweful lot of sense to keep it a
+      separate project, especially with some refactoring that had to
+      be done.</para>
+      </footnote>. It allows you to evaluate expressions on a certain
+      context. The expression language is fairly simple; it supports
+      basic logical and arithmetic operators, and it supports
+      attribute references and item references.
+    </para>
+    <example id="example-simple">
+      <title>Simple Limbo Examples</title>
+      <programlisting><![CDATA[3 * 4
+3 * person.age
+2 ^ group.persons[3].age
+person.age >= 12]]></programlisting>
+    </example>
+    <para>
+      ... and that's probably where the correspondence with the JSP
+      Expression Language and other expression languages ends. Because
+      there is a <emphasis>big</emphasis> difference with those
+      languages. And that difference is not based on notation (syntax
+      and grammar), but on the way you apply Limbo.
+    </para>
+    <para>
+      Here are some of the differences of Limbo:
+    </para>
+    <itemizedlist>
+      <listitem>
+        <para>
+          Limbo supports <firstterm>early binding</firstterm>. That
+          is, it will <firstterm>validate</firstterm> the correctness
+          of the expression before it actually
+          <firstterm>evaluate</firstterm> it. So, when you build the
+          expression, you know if it is an expression that can be
+          evaluated at runtime within a certain context.
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          Limbo allows you to bind to <emphasis>any</emphasis>
+          context, not just state exposed through bean properties or
+          private fields. 
+        </para>
+      </listitem>
+      <listitem>
+        <para>
+          The Limbo API allows you to export the expression as a
+          natural language based human readable snippet of text.
+        </para>
+      </listitem>
+    </itemizedlist>
+    <para>
+      Limbo originates from a project to capture dependencies in
+      different fields in a binary media format in an unambiguous
+      way. Using Limbo, that project is capable of generating a human
+      readable description of the encoding format. Expressions like
+      the ones mentioned in <xref linkend="example-simple"/> could be
+      rendered into this:
+    </para>
+    <programlisting><![CDATA[
+3 times 4
+3 times the age of a person
+2 to the power of the age of the third person in the group
+the age of the person is greater than or equal to 2
+    ]]></programlisting>
+    <para>
+      This article is a tutorial on Limbo. It will explain the
+      language itself, but it will also explain how you weave it into
+      your own project.
+    </para>
+  </section>
+  
+  <section>
+    <title>The Language</title>
+    <para>
+      The first thing you need to know about Limbo is that it is an
+      <emphasis>expression language</emphasis>, intended to execute on
+      a certain context. The context might be a fairly complicated
+      data structure, or it may not. Two things are for sure: Limbo
+      only allows you to refer to things by name or their index, and
+      Limbo does <emphasis>not</emphasis> allow you to define complex
+      structures in the language itself.
+    </para>
+    <para>
+      Let's start with the most commons example: let's look at an
+      simple example object-based data structure. In <xref
+      linkend="fig-person"/>, Persons have a name and an age, a father
+      and mother, and optionally some children of their own.
+    </para>
+    <figure id="fig-person">
+      <title>Simple data model</title>
+      <mediaobject>
+        <imageobject>
+          <imagedata fileref="sample.png"/>
+        </imageobject>
+      </mediaobject>
+    </figure>
+    <para>
+      Based on this, here are some example Limbo expressions, given
+      that the context is a person.
+    </para>
+    <programlisting><![CDATA[
+age // the age of the current person
+age >= 35 // the age is greater than or equal to 35
+father.age // the age of the father
+father.age + mother.age >= 70 // the sum of the age of the father and
+                              // the age of the mother is greater than 
+                              //or equal to 70
+children[0].age < 7
+    ]]></programlisting>
+    <para>
+      There are a couple of lessons to learn from the example
+      above. First of all, valid Limbo expressions always evaluate to
+      boolean values or integer values. You wonder why? Well, simply
+      because we did not need anything else. The whole purpose of
+      Limbo is to express arithmetical and logical relationships
+      between things. Producing text simply has never been a
+      requirement.
+    </para>
+    <para>
+      The next thing to notice is that the expressions do not look all
+      that different than Java expressions<footnote>
+      <para>
+        Notice that I say it does not <emphasis>look</emphasis> all
+        that different. It <emphasis>actually</emphasis> more
+        different than you might expect. More on that somewhere else.
+      </para>
+      </footnote>. It supports arithmetic operators ('+', '-', '/',
+      '*', '^'), comparison operators ('&gt;', '&lt;', '&gt;=',
+      '&lt;=', '==') and logical operators ('&amp;&amp;', '||', '!').
+    </para>
+    <para>
+      The third thing to notice is that you can refer to attributes
+      as well as items. (In that sense, Limbo is comparable to
+      Python.) In this example, that works out quite well. Objects
+      also have attributes and some types of objects might have
+      items. However, it is important to remember that Limbo does not
+      bind to objects only. Limbo is able to bind to
+      <emphasis>any</emphasis> model exposed as 'things' with
+      attributes and items.
+    </para>
+    <para>
+      Integer literals can be expressed as decimals (1254),
+      hexadecimals (0xFF, 0xff, etc.) or as binary numbers
+      (0b10101011, 0b1001, etc.). Limbo ignores all whitespace.
+    </para>
+  </section>
+
+  <section>
+    <title>The API</title>
+    <section>
+      <title>Getting Started</title>
+      <para>
+        Let's start with a simple example first:
+      </para>
+      <example id="example-simple-expression">
+        <title>Simple expression</title>
+          <programlisting><![CDATA[Expression<Integer, Person>
+          doubleAge = Expressions
+    .from(Person.class)
+    .toInteger("age * 2");
+Person wilfred = new Person();
+wilfred.name = "Wilfred";
+wilfred.age = 35;
+assert 70 == doubleAge.eval(wilfred);]]></programlisting>
+      </example>
+      <para>
+        In the first line, we build the
+        <interfacename>Expression</interfacename> instance. Since the
+        expression is based on a <classname>Person</classname> object,
+        the <methodname>from(...)</methodname> method takes
+        <classname>Person</classname> class reference. After that, we
+        specify that we expect an integer result, and pass the
+        expression at the same time. (The builder methods actually
+        have a couple of other options, but we will leave that out for
+        now.)
+      </para>
+      <para>
+        Once the <interfacename>Expression</interfacename> has been
+        built, evaluating is simply calling
+        <methodname>eval(...)</methodname> on the expression, passing
+        in the <classname>Person</classname> instance. And - like you
+        could have expected - the result is 70. Note there is no cast
+        in order to compare to 70, courtesy of the use of generics and
+        auto unboxing.
+      </para>
+    </section>
+    <section>
+      <title>The ReferenceContext</title>
+      <para>
+        I said before that Limbo is capable of binding to
+        <emphasis>anything</emphasis> capable of representing itself
+        as 'things' with named attributes and numbered items. Let me
+        refine that: it is capable of binding to anything for which
+        you can implement a
+        <interfacename>ReferenceContext</interfacename>. So, when in
+        <xref linkend="example-simple-expression"/> you passed in a
+        Person class, under the hood, Limbo wrapped that inside a
+        ReferenceContext.
+      </para>
+      <para>
+        Now, if you ever used an expression language like the JSP EL,
+        then you are probably aware of a similar mechanism in that
+        expression language. JSP EL has a
+        <interfacename>VariableResolver</interfacename>. Your EL
+        expression can be evaluated against anything, as long as there
+        is a <interfacename>VariableResolver</interfacename> capable
+        of resolving the named things.
+      </para>
+      <para>
+        One of the differences between Limbo's ReferenceContext and
+        JSP EL's VaribleResolver is that the ReferenceContext is
+        parameterized with type of context passed in at evaluation
+        time. Typically, with JSP EL, you will evaluate your
+        expression against a context of of type
+        <classname>java.lang.Object</classname>. The Java compiler
+        will not be able to verify if the subtype of
+        <classname>java.lang.Object</classname> you pass in is
+        actually something against which you can evaluate the
+        expression.
+      </para>
+      <para>
+        If you are creating an expression in Limbo, you will always
+        need to construct that expression parameterized
+        <interfacename>ReferenceContext</interfacename>, in which the
+        type parameter is the type of object on which you can apply
+        the expression. So if you have an expression you want to
+        evaluate against an instance of <classname>Person</classname>,
+        you need to construct the
+        <interfacename>Expression</interfacename> based on a
+        <interfacename>ReferenceContext&lt;Person&gt;</interfacename>.
+      </para>
+      <para>
+        Now, you probably wonder why all of that is relevant. What's
+        the purpose of adding the extra complexity of having to deal
+        with parameterized types. After all, the JSP EL works fine
+        with a non-parameterized
+        <interfacename>VariableResolver</interfacename>, and
+        expressions accepting <classname>java.lang.Object</classname>
+        instances.
+      </para>
+      <para>
+        The real reason for this is that Limbo is capable of early
+        binding. <interfacename>ReferenceContext</interfacename>
+        implementations can make guarantees on the validity of
+        references used in the expression. Which means that the
+        Expression based on that ReferenceContext can guarantee it
+        will be capable of acting upon a certain context.
+      </para>
+      <para>
+        <xref linkend="example-reference-context"/> shows how you
+        build references using a
+        <interfacename>ReferenceContext</interfacename>. In this case,
+        the data model to which we bind is a Java version of the
+        object model outlined in <xref linkend="fig-person"/>. The
+        <classname>ClassReferenceContext</classname> used in this case
+        not only allows you to build references to data contained by
+        an instance of that class, but will also check for the
+        existence of those attributes. Any attempt to reference
+        something that is not defined by the class will generate a
+        <classname>BindingException</classname>. 
+      </para>
+      <example id="example-reference-context">
+        <title>ReferenceContext and References</title>
+        <programlisting><![CDATA[
+ReferenceContext<Person> context = 
+  new ClassReferenceContext<Person>(Person.class);
+Reference<Person> personsName = 
+  context.selectAttribute("name");
+Reference<Person> fathersName = 
+  context.selectAttribute("father").selectAttribute("name");
+Person wilfred = new Person();
+wilfred.name = "Wilfred";
+wilfred.age = 35;
+Person levi = new Person();
+levi.name = "Levi";
+levi.age = 8;
+levi.father = wilfred;
+assert "Levi".equals(personsName.resolve(levi));
+assert "Wilfred".equals(fathersName.resolve(levi));
+assert "Wilfred".equals(personsName.resolve(wilfred));
+// ... and this will throw a BindingException
+Reference<Person> gender = context.selectAttribute("gender");
+        ]]></programlisting>
+      </example>
+    </section>
+    <section>
+      <title>Natural Language Description</title>
+      <para>
+        Early validation is not the only benefit we gain from
+        <interfacename>ReferenceContexts</interfacename> supporting
+        early binding. Another benefit is that we basically gather
+        enough information to generate a fairly decent description of
+        the References created.
+      </para>
+      <para>
+        In the example above, the fathersName reference will be
+        printed as: "the name (a String) of the father (a Person) of a
+        Person ". Now, this description might not be ideally suited in
+        your case, but the way your reference is rendered is
+        <emphasis>also</emphasis> determined by the
+        <interfacename>ReferenceContext</interfacename>. You can
+        basically render it any way you like, as long as you are
+        willing to go through the trouble of implementing your own
+        <interfacename>ReferenceContext</interfacename>.
+      </para>
+    </section>
+  </section>
+  <section>
+    <title>Embedding Limbo</title>
+    <para>
+      If you ever consider using Limbo, you will most likely do that
+      for its abilities to provide early validation of expressions,
+      and the ability to turn expressions into human-readable
+      descriptions. 
+    </para>
+    <para>
+      There is a problem here though. Limbo doesn't define a single
+      ideal way of 'early binding' the expression to a
+      context. <emphasis>You</emphasis> may feel that binding an
+      expression to private inner variables of an object makes perfect
+      sense. Other people will consider that to be malpractice, and
+      require a way to have early validation of expressions bound to
+      getters and setters. So where do you encode these policies? 
+    </para>
+    <para>
+      Similarly, Limbo also does not define a single ideal way to turn
+      expressions into human readable language. Of course, you will
+      most likely benefit from Limbo's abilities to turn the main part
+      of the expression into human readable text, but you will
+      probably have a preference for deciding how references should be
+      translated in human readable text. Like, do you want it to be
+      like 'the age of the person', 'the value of the age property of
+      a Person object', or 'person.age'? Again, what do you implement
+      in order to encode these policies?
+    </para>
+    <para>
+      The <interfacename>ReferenceContext</interfacename> is the
+      answer to both of these questions. So basically, embedding Limbo
+      in a context, normally starts by implementing a
+      <interfacename>ReferenceContext</interfacename>. And, in all
+      honesty, that's basically it. Once you start by implementing a
+      <interfacename>ReferenceContext</interfacename>, you will
+      quickly run into having the need to implement various
+      <interfacename>Reference</interfacename>s yourself, you so
+      probably need to take a peek at that interface as well.
+    </para>
+    <para>
+      I currently can't tell you which
+      <interfacename>ReferenceContext</interfacename>s and
+      <interfacename>Reference</interfacename>s you will want to
+      implement. That will be based totally on your own
+      needs. However, I can give you some examples on the use of
+      <interface>ReferenceContext</interface>s in Preon itself. That
+      should give you a bit of a flavor on what you can do.
+    </para>
+  </section>
+  <section>
+    <title>Limbo in Preon</title>
+    <section>
+      <title>BindingsContext</title>
+      <para>
+        References in expressions used in Preon are not bound to
+        properties. And although references typically resolve to
+        values of (private) fields, the reverse doesn't hold. So, not
+        every (private) field can be addressed by a reference in
+        Preon. In fact, in general only fields that have been marked
+        as 'bound' can be referenced from an expression. Other
+        (private) fields are not even seen. 
+      </para>
+      <para>
+        The reason behind this is fairly simple. Preon's objective is
+        to make sure that you can always generate documentation on the
+        encoded representation from the annotated data structure. If
+        the 'specification' (data structure + annotations) would
+        contain references to fields that have been populated outside
+        of Preon's control, then that description would have
+        'dangling' references; references that point to something of
+        which we don't know anything at all. So essentially, it would
+        leave holes in the documentation.
+      </para>
+      <para>
+        That's where the <classname>BindingsContext</classname> comes
+        into play. Almost all references in Preon are rooted in the
+        <classname>BindingsContext</classname>. While constructing the
+        <classname>Codec</classname>, Preon will construct a
+        <classname>BindingsContext</classname> for
+        <emphasis>every</emphasis> non-trivial class for which it
+        needs a <classname>Codec</classname>. So it won't construct a
+        <classname>BindingsContext</classname> for a Codec decoding a
+        Date, or an Integer, but it <emphasis>will</emphasis> create
+        an instance for your own homegrown class with a couple of
+        'bound' fields.
+      </para>
+      <para>
+        Now, if you closely examine the
+        <interfacename>ReferenceContext</interfacename>'s interface,
+        then you will notice that it has
+        <methodname>selectAttribute</methodname> and
+        <methodname>selectItem</methodname> methods. When creating a
+        reference to the value of a bound field named 'foobar', then
+        what essentially is happening is that (in case of a named
+        attribute), the <methodname>selectAttribute</methodname> is
+        called with the name 'foobar'. The
+        <classname>BindingsContext</classname> will return a
+        <interfacename>Reference</interfacename> object that
+        eventually will resolve correctly into the value of
+        foobar.
+      </para>
+      <para>
+        Remember that <interfacename>Reference</interfacename> itself
+        is not the end of it. A
+        <interfacename>Reference</interfacename>
+        <emphasis>can</emphasis> be used to determine a value at
+        runtime, but it also offers the option of selecting other
+        parts of the data structure by calling one of the
+        <interfacename>Reference</interfacename>'s own
+        <methodname>selectAttribute</methodname> or
+        <methodname>selectItem</methodname> methods. 
+      </para>
+    </section>
+    <section>
+      <title>ImportSupportingObjectResolverContext</title>
+      <para>
+        This one definitely deserves an explanation, even it were only
+        because of its incredible long name. In the previous section,
+        I already alluded to the fact that <emphasis>not
+        all</emphasis> references are references to bound
+        fields. Preon uses more than one ReferenceContext, and this
+        one in particular is sometimes wrapped around an existing
+        ReferenceContext in order to make sure <firstterm>you can
+        refer to constants</firstterm>.
+      </para>
+      <para>
+        So this is how it works. If you want to refer to constant
+        values inside your expressions, then you will need to have a
+        way to define those constants. Preon simply allows you to
+        define these constants as you would normally do in
+        Java. However, that does not automatically pull them into
+        scope of your expressions. In order to 'import' these constant
+        definitions, you place an
+        <interfacename>@ImportStatic</interfacename> annotation on
+        top of the class containing references to these constants. 
+      </para>
+      <para>
+        The
+        <classname>ImportSupportingObjectResolverContext</classname>
+        will be instantiated by the
+        <classname>ObjectCodecFactory</classname> for every class for
+        which it creates a <classname>Codec</classname>, <emphasis>if
+        and only if that class has the
+        <interfacename>@ImportStatic</interfacename>
+        annotation</emphasis>.
+      </para>
+    </section>
+    <section>
+      <title>Index in Offset Expressions</title>
+      <para>
+        When you use <interfacename>@BoundList</interfacename>, then
+        Preon allows you to specify an offset attribute; that offset
+        attribute can be an expression. The expression allows you to
+        calculate the <emphasis>starting position</emphasis> of an
+        element, given a certain context. Question of course is
+        <emphasis>which element</emphasis>?
+      </para>
+      <para>
+        It turns out that the offset attribute actually introduces a
+        new variable, on top of all variables already in scope. That
+        variable is the 'index'. You can express the offset of an
+        element in terms of that index, by simply referring to that
+        variable. 
+      </para>
+      <para>
+        The 'index' variable doesn't come to life just like that. Just
+        like with all of the other examples shown before, it requires
+        a <interfacename>ReferenceContext</interfacename> to make sure
+        the framework understands the existence of this variable. That
+        particular <interfacename>ReferenceContext</interfacename> is
+        also responsible for generating a proper human readable
+        description for that reference in case the framework requires
+        it.
+      </para>
+    </section>
+  </section>
+
+  <section>
+    <title>Summary</title>
+    <para>
+      Limbo originally started out as a project to have an expression
+      language catering for the needs of Preon: it required an
+      expression language with APIs for embedding it inside a context
+      that required early binding, and an API for turning expressions
+      into human readable text.
+    </para>
+    <para>
+      The <interfacename>ReferenceContext</interfacename> is one of
+      the central abstractions for having early validation. From the
+      <interfacename>ReferenceContext</interfacename>, you will create
+      <interfacename>Reference</interfacename>s. Those
+      <interfacename>Reference</interfacename>s embody everything
+      there is to know about a reference, including information on how
+      the reference should be rendered into a human-readable
+      descriptive reference.
+    </para>
+    <para>
+      Limbo was eventually folded back into Preon as the preon-el
+      module, in order to ease migration to Preon 2.0.
+    </para>
+  </section>
+
+</article>
