@@ -28,6 +28,7 @@ profile
 nbactions.xml
 nb-configuration.xml
 .netbeans_automatic_build
+nbproject
 
 # Eclipse noise
 .settings
